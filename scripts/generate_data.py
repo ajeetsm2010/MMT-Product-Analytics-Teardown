@@ -38,9 +38,9 @@ DESTINATIONS = [
     "Kolkata"
 ]
 
-# ------------------------------------------------------------
-# User segment distribution
-# ------------------------------------------------------------
+# ============================================================
+# USER SEGMENT DISTRIBUTION
+# ============================================================
 
 SEGMENT_WEIGHTS = [
     0.55,   # Solo Explorer
@@ -48,28 +48,57 @@ SEGMENT_WEIGHTS = [
     0.25    # Business
 ]
 
-# ------------------------------------------------------------
-# Base hotel attachment probability
-#
-# These represent the probability that a user adds a hotel
-# after seeing the cross-sell recommendation.
-# ------------------------------------------------------------
 
-BASE_ATTACHMENT = {
-    "Solo Explorer": 0.031,
-    "Family/Group": 0.142,
-    "Business": 0.080
+# ============================================================
+# HOTEL ADD PROBABILITY
+#
+# Probability after the user sees the hotel cross-sell.
+#
+# These create meaningful cohort differences:
+#
+# Solo Explorer  -> low intent
+# Family/Group   -> high intent
+# Business       -> medium intent
+# ============================================================
+
+BASE_HOTEL_ADD_PROBABILITY = {
+
+    "Solo Explorer": 0.11,
+
+    "Family/Group": 0.43,
+
+    "Business": 0.27
 }
 
-# Variant experiment uplift
+
+# ============================================================
+# EXPERIMENT
+#
+# Variant gets an additional +2.4 percentage points
+# in hotel-add probability.
+# ============================================================
+
 VARIANT_LIFT = 0.024
 
 
 # ============================================================
-# Helper Functions
+# CHECKOUT PROBABILITIES
+# ============================================================
+
+# Flight-only booking completion probability
+FLIGHT_BOOKING_COMPLETION = 0.80
+
+# Probability that a hotel-added user completes the
+# hotel checkout.
+HOTEL_CHECKOUT_COMPLETION = 0.25
+
+
+# ============================================================
+# HELPER FUNCTIONS
 # ============================================================
 
 def random_date(start, end):
+
     delta = end - start
 
     return start + timedelta(
@@ -81,6 +110,7 @@ def random_date(start, end):
 
 
 def make_id(prefix, number):
+
     return f"{prefix}_{number:06d}"
 
 
@@ -123,19 +153,24 @@ for i in range(1, NUM_USERS + 1):
 
     users.append({
 
-        "user_id": make_id("USR", i),
+        "user_id": make_id(
+            "USR",
+            i
+        ),
 
         "signup_date": signup_date,
 
         "user_segment": segment,
 
-        "device_os": random.choice(DEVICES)
+        "device_os": random.choice(
+            DEVICES
+        )
 
     })
 
 
 # ============================================================
-# 2. APP EVENTS + INITIAL BOOKINGS
+# 2. EVENTS + INITIAL BOOKINGS
 # ============================================================
 
 events = []
@@ -149,10 +184,15 @@ session_counter = 1
 
 for user in users:
 
-    # Number of sessions per user
+    # Most users have 1-4 sessions.
     num_sessions = random.choices(
         [1, 2, 3, 4],
-        weights=[0.45, 0.30, 0.18, 0.07],
+        weights=[
+            0.45,
+            0.30,
+            0.18,
+            0.07
+        ],
         k=1
     )[0]
 
@@ -173,14 +213,17 @@ for user in users:
         )
 
 
-        # A/B assignment
         experiment_group = random.choice(
-            ["Control", "Variant"]
+            [
+                "Control",
+                "Variant"
+            ]
         )
 
 
         # ----------------------------------------------------
-        # STEP 1 — Flight Search
+        # STEP 1
+        # Flight Search
         # ----------------------------------------------------
 
         events.append({
@@ -206,7 +249,8 @@ for user in users:
 
 
         # ----------------------------------------------------
-        # STEP 2 — Flight Selected
+        # STEP 2
+        # Flight Selected
         # ----------------------------------------------------
 
         flight_selected = (
@@ -221,7 +265,10 @@ for user in users:
         selected_time = (
             session_time
             + timedelta(
-                minutes=random.randint(2, 15)
+                minutes=random.randint(
+                    2,
+                    15
+                )
             )
         )
 
@@ -249,10 +296,8 @@ for user in users:
 
 
         # ----------------------------------------------------
-        # STEP 3 — Hotel Cross-Sell Viewed
-        #
-        # Only a subset of flight users see the hotel
-        # cross-sell experience.
+        # STEP 3
+        # Hotel Cross-Sell Viewed
         # ----------------------------------------------------
 
         widget_viewed = (
@@ -260,17 +305,31 @@ for user in users:
         )
 
 
+        # ====================================================
+        # CASE A
+        # Hotel widget NOT viewed
+        # ====================================================
+
         if not widget_viewed:
 
-            # Some users still complete flight-only booking
-            if random.random() < 0.65:
+            flight_booked = (
+                random.random()
+                < FLIGHT_BOOKING_COMPLETION
+            )
+
+
+            if flight_booked:
 
                 checkout_time = (
                     selected_time
                     + timedelta(
-                        minutes=random.randint(5, 20)
+                        minutes=random.randint(
+                            5,
+                            20
+                        )
                     )
                 )
+
 
                 events.append({
 
@@ -283,11 +342,14 @@ for user in users:
 
                     "user_id": user["user_id"],
 
-                    "event_name": "checkout_completed",
+                    "event_name":
+                        "flight_booking_completed",
 
-                    "experiment_group": experiment_group,
+                    "experiment_group":
+                        experiment_group,
 
-                    "event_timestamp": checkout_time
+                    "event_timestamp":
+                        checkout_time
 
                 })
 
@@ -295,7 +357,10 @@ for user in users:
 
 
                 flight_value = round(
-                    random.uniform(2500, 12000),
+                    random.uniform(
+                        2500,
+                        12000
+                    ),
                     2
                 )
 
@@ -307,21 +372,28 @@ for user in users:
                         booking_counter
                     ),
 
-                    "user_id": user["user_id"],
+                    "user_id":
+                        user["user_id"],
 
-                    "flight_booking_value": flight_value,
+                    "flight_booking_value":
+                        flight_value,
 
-                    "hotel_booking_value": "",
+                    "hotel_booking_value":
+                        "",
 
-                    "is_cross_sell_attached": False,
+                    "is_cross_sell_attached":
+                        False,
 
-                    "booking_type": "initial",
+                    "booking_type":
+                        "initial",
 
-                    "booking_timestamp": checkout_time
+                    "booking_timestamp":
+                        checkout_time
 
                 })
 
                 booking_counter += 1
+
 
             continue
 
@@ -329,7 +401,10 @@ for user in users:
         widget_time = (
             selected_time
             + timedelta(
-                minutes=random.randint(1, 5)
+                minutes=random.randint(
+                    1,
+                    5
+                )
             )
         )
 
@@ -345,11 +420,14 @@ for user in users:
 
             "user_id": user["user_id"],
 
-            "event_name": "hotel_cross_sell_viewed",
+            "event_name":
+                "hotel_cross_sell_viewed",
 
-            "experiment_group": experiment_group,
+            "experiment_group":
+                experiment_group,
 
-            "event_timestamp": widget_time
+            "event_timestamp":
+                widget_time
 
         })
 
@@ -357,38 +435,42 @@ for user in users:
 
 
         # ----------------------------------------------------
-        # STEP 4 — Hotel Added
+        # STEP 4
+        # Hotel Added
         # ----------------------------------------------------
 
-        base_probability = BASE_ATTACHMENT[
-            user["user_segment"]
-        ]
+        add_probability = (
+            BASE_HOTEL_ADD_PROBABILITY[
+                user["user_segment"]
+            ]
+        )
 
 
-        add_probability = base_probability
-
-
-        # Variant treatment
         if experiment_group == "Variant":
 
             add_probability += VARIANT_LIFT
 
 
         hotel_added = (
-            random.random() < add_probability
+            random.random()
+            < add_probability
         )
 
 
-        # ----------------------------------------------------
-        # HOTEL ATTACHED
-        # ----------------------------------------------------
+        # ====================================================
+        # CASE B
+        # HOTEL ADDED
+        # ====================================================
 
         if hotel_added:
 
             add_time = (
                 widget_time
                 + timedelta(
-                    minutes=random.randint(1, 10)
+                    minutes=random.randint(
+                        1,
+                        10
+                    )
                 )
             )
 
@@ -404,100 +486,39 @@ for user in users:
 
                 "user_id": user["user_id"],
 
-                "event_name": "hotel_cross_sell_added",
+                "event_name":
+                    "hotel_cross_sell_added",
 
-                "experiment_group": experiment_group,
+                "experiment_group":
+                    experiment_group,
 
-                "event_timestamp": add_time
-
-            })
-
-            event_counter += 1
-
-
-            # ------------------------------------------------
-            # STEP 5 — Checkout
-            # ------------------------------------------------
-
-            checkout_time = (
-                add_time
-                + timedelta(
-                    minutes=random.randint(2, 12)
-                )
-            )
-
-
-            events.append({
-
-                "event_id": make_id(
-                    "EVT",
-                    event_counter
-                ),
-
-                "session_id": session_id,
-
-                "user_id": user["user_id"],
-
-                "event_name": "checkout_completed",
-
-                "experiment_group": experiment_group,
-
-                "event_timestamp": checkout_time
+                "event_timestamp":
+                    add_time
 
             })
 
             event_counter += 1
 
 
-            flight_value = round(
-                random.uniform(2500, 12000),
-                2
+            # -----------------------------------------------
+            # Hotel checkout
+            # -----------------------------------------------
+
+            hotel_checkout = (
+                random.random()
+                < HOTEL_CHECKOUT_COMPLETION
             )
 
 
-            hotel_value = round(
-                random.uniform(2500, 15000),
-                2
-            )
-
-
-            bookings.append({
-
-                "booking_id": make_id(
-                    "BKG",
-                    booking_counter
-                ),
-
-                "user_id": user["user_id"],
-
-                "flight_booking_value": flight_value,
-
-                "hotel_booking_value": hotel_value,
-
-                "is_cross_sell_attached": True,
-
-                "booking_type": "initial",
-
-                "booking_timestamp": checkout_time
-
-            })
-
-            booking_counter += 1
-
-
-        # ----------------------------------------------------
-        # HOTEL NOT ADDED
-        # ----------------------------------------------------
-
-        else:
-
-            # User may still complete flight booking
-            if random.random() < 0.65:
+            if hotel_checkout:
 
                 checkout_time = (
-                    widget_time
+                    add_time
                     + timedelta(
-                        minutes=random.randint(5, 20)
+                        minutes=random.randint(
+                            2,
+                            12
+                        )
                     )
                 )
 
@@ -513,11 +534,14 @@ for user in users:
 
                     "user_id": user["user_id"],
 
-                    "event_name": "checkout_completed",
+                    "event_name":
+                        "checkout_completed",
 
-                    "experiment_group": experiment_group,
+                    "experiment_group":
+                        experiment_group,
 
-                    "event_timestamp": checkout_time
+                    "event_timestamp":
+                        checkout_time
 
                 })
 
@@ -525,7 +549,19 @@ for user in users:
 
 
                 flight_value = round(
-                    random.uniform(2500, 12000),
+                    random.uniform(
+                        2500,
+                        12000
+                    ),
+                    2
+                )
+
+
+                hotel_value = round(
+                    random.uniform(
+                        2500,
+                        15000
+                    ),
                     2
                 )
 
@@ -537,17 +573,203 @@ for user in users:
                         booking_counter
                     ),
 
+                    "user_id":
+                        user["user_id"],
+
+                    "flight_booking_value":
+                        flight_value,
+
+                    "hotel_booking_value":
+                        hotel_value,
+
+                    "is_cross_sell_attached":
+                        True,
+
+                    "booking_type":
+                        "initial",
+
+                    "booking_timestamp":
+                        checkout_time
+
+                })
+
+                booking_counter += 1
+
+
+            else:
+
+                # User can still complete the flight booking
+                # even if hotel checkout is abandoned.
+
+                flight_booked = (
+                    random.random()
+                    < FLIGHT_BOOKING_COMPLETION
+                )
+
+
+                if flight_booked:
+
+                    flight_checkout_time = (
+                        add_time
+                        + timedelta(
+                            minutes=random.randint(
+                                5,
+                                20
+                            )
+                        )
+                    )
+
+
+                    events.append({
+
+                        "event_id": make_id(
+                            "EVT",
+                            event_counter
+                        ),
+
+                        "session_id":
+                            session_id,
+
+                        "user_id":
+                            user["user_id"],
+
+                        "event_name":
+                            "flight_booking_completed",
+
+                        "experiment_group":
+                            experiment_group,
+
+                        "event_timestamp":
+                            flight_checkout_time
+
+                    })
+
+                    event_counter += 1
+
+
+                    flight_value = round(
+                        random.uniform(
+                            2500,
+                            12000
+                        ),
+                        2
+                    )
+
+
+                    bookings.append({
+
+                        "booking_id": make_id(
+                            "BKG",
+                            booking_counter
+                        ),
+
+                        "user_id":
+                            user["user_id"],
+
+                        "flight_booking_value":
+                            flight_value,
+
+                        "hotel_booking_value":
+                            "",
+
+                        "is_cross_sell_attached":
+                            False,
+
+                        "booking_type":
+                            "initial",
+
+                        "booking_timestamp":
+                            flight_checkout_time
+
+                    })
+
+                    booking_counter += 1
+
+
+        # ====================================================
+        # CASE C
+        # HOTEL NOT ADDED
+        # ====================================================
+
+        else:
+
+            flight_booked = (
+                random.random()
+                < FLIGHT_BOOKING_COMPLETION
+            )
+
+
+            if flight_booked:
+
+                checkout_time = (
+                    widget_time
+                    + timedelta(
+                        minutes=random.randint(
+                            5,
+                            20
+                        )
+                    )
+                )
+
+
+                events.append({
+
+                    "event_id": make_id(
+                        "EVT",
+                        event_counter
+                    ),
+
+                    "session_id": session_id,
+
                     "user_id": user["user_id"],
 
-                    "flight_booking_value": flight_value,
+                    "event_name":
+                        "flight_booking_completed",
 
-                    "hotel_booking_value": "",
+                    "experiment_group":
+                        experiment_group,
 
-                    "is_cross_sell_attached": False,
+                    "event_timestamp":
+                        checkout_time
 
-                    "booking_type": "initial",
+                })
 
-                    "booking_timestamp": checkout_time
+                event_counter += 1
+
+
+                flight_value = round(
+                    random.uniform(
+                        2500,
+                        12000
+                    ),
+                    2
+                )
+
+
+                bookings.append({
+
+                    "booking_id": make_id(
+                        "BKG",
+                        booking_counter
+                    ),
+
+                    "user_id":
+                        user["user_id"],
+
+                    "flight_booking_value":
+                        flight_value,
+
+                    "hotel_booking_value":
+                        "",
+
+                    "is_cross_sell_attached":
+                        False,
+
+                    "booking_type":
+                        "initial",
+
+                    "booking_timestamp":
+                        checkout_time
 
                 })
 
@@ -555,11 +777,12 @@ for user in users:
 
 
 # ============================================================
-# 3. REPEAT BOOKINGS FOR RETENTION
+# 3. REPEAT BOOKINGS
 # ============================================================
 
 initial_bookings = [
-    b for b in bookings
+    b
+    for b in bookings
     if b["booking_type"] == "initial"
 ]
 
@@ -572,13 +795,14 @@ users_with_initial_booking = list({
 
 for user_id in users_with_initial_booking:
 
-    # Repeat booking probability
+    # 18% probability of another booking
     if random.random() >= 0.18:
         continue
 
 
     user_bookings = [
-        b for b in initial_bookings
+        b
+        for b in initial_bookings
         if b["user_id"] == user_id
     ]
 
@@ -600,7 +824,10 @@ for user_id in users_with_initial_booking:
     repeat_date = (
         previous_date
         + timedelta(
-            days=random.randint(30, 120)
+            days=random.randint(
+                30,
+                120
+            )
         )
     )
 
@@ -610,7 +837,10 @@ for user_id in users_with_initial_booking:
 
 
     flight_value = round(
-        random.uniform(2500, 12000),
+        random.uniform(
+            2500,
+            12000
+        ),
         2
     )
 
@@ -622,17 +852,23 @@ for user_id in users_with_initial_booking:
             booking_counter
         ),
 
-        "user_id": user_id,
+        "user_id":
+            user_id,
 
-        "flight_booking_value": flight_value,
+        "flight_booking_value":
+            flight_value,
 
-        "hotel_booking_value": "",
+        "hotel_booking_value":
+            "",
 
-        "is_cross_sell_attached": False,
+        "is_cross_sell_attached":
+            False,
 
-        "booking_type": "repeat",
+        "booking_type":
+            "repeat",
 
-        "booking_timestamp": repeat_date
+        "booking_timestamp":
+            repeat_date
 
     })
 
@@ -640,7 +876,7 @@ for user_id in users_with_initial_booking:
 
 
 # ============================================================
-# 4. WRITE DATASETS
+# 4. WRITE CSV FILES
 # ============================================================
 
 write_csv(
@@ -702,16 +938,26 @@ print("==========================================")
 print("MMT PRODUCT ANALYTICS DATASET GENERATED")
 print("==========================================")
 
-print(f"Users:       {len(users):,}")
-print(f"Events:      {len(events):,}")
-print(f"Bookings:    {len(bookings):,}")
-
 print(
-    f"Initial:     {sum(1 for b in bookings if b['booking_type'] == 'initial'):,}"
+    f"Users:       {len(users):,}"
 )
 
 print(
-    f"Repeat:      {sum(1 for b in bookings if b['booking_type'] == 'repeat'):,}"
+    f"Events:      {len(events):,}"
+)
+
+print(
+    f"Bookings:    {len(bookings):,}"
+)
+
+print(
+    "Initial:     "
+    f"{sum(1 for b in bookings if b['booking_type'] == 'initial'):,}"
+)
+
+print(
+    "Repeat:      "
+    f"{sum(1 for b in bookings if b['booking_type'] == 'repeat'):,}"
 )
 
 print("==========================================")
