@@ -65,7 +65,7 @@ BASE_HOTEL_ADD_PROBABILITY = {
 
     "Solo Explorer": 0.11,
 
-    "Family/Group": 0.43,
+    "Family/Group": 0.56,
 
     "Business": 0.27
 }
@@ -78,7 +78,7 @@ BASE_HOTEL_ADD_PROBABILITY = {
 # in hotel-add probability.
 # ============================================================
 
-VARIANT_LIFT = 0.024
+VARIANT_LIFT = 0.030
 
 
 # ============================================================
