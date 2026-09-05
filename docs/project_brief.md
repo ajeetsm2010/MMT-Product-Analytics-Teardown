@@ -42,3 +42,4 @@ Replace a generic hotel list with a small number of personalized recommendations
 All data used in this case study will be synthetically generated for portfolio demonstration.
 
 The analysis does not use or represent MakeMyTrip's internal or confidential data.
+
